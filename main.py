@@ -94,6 +94,22 @@ def mode_ia():
     return var_mode.get() == "JcIA"
 
 
+def mode_jcj():
+    """Renvoie True si la partie en cours est en mode Joueur contre Joueur."""
+    return var_mode.get() == "JcJ"
+
+
+def actualiser_controles_mode(*_):
+    """Active ou desactive les controles selon le mode de jeu choisi."""
+    if "combo_difficulte" not in globals():
+        return
+
+    if mode_jcj():
+        combo_difficulte.configure(state="disabled")
+    else:
+        combo_difficulte.configure(state="readonly")
+
+
 def joueur_courant():
     """Renvoie le nom du joueur dont c'est le tour."""
     if not joueurs_partie:
@@ -584,6 +600,8 @@ def construire_interface():
     combo_difficulte = ttk.Combobox(cadre_partie, textvariable=var_difficulte, state="readonly",
                                      values=[str(n) for n in NIVEAUX_IA])
     combo_difficulte.pack(fill="x", padx=8, pady=(2, 8))
+    var_mode.trace_add("write", actualiser_controles_mode)
+    actualiser_controles_mode()
 
     tk.Label(cadre_partie, text="Piles (separees par des virgules)", bg=COULEUR_PANNEAU, fg=COULEUR_TEXTE_SECONDAIRE).pack(anchor="w", padx=8)
     tk.Entry(cadre_partie, textvariable=var_config).pack(fill="x", padx=8, pady=(2, 8))

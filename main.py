@@ -5,24 +5,15 @@
 import time
 import tkinter as tk
 from tkinter import messagebox, ttk
-from pathlib import Path
 
-# winsound est un module integre a Python, mais uniquement sur Windows.
-# On l'importe donc dans un bloc try/except pour que le jeu fonctionne
-# quand meme (sans le son) si jamais il n'est pas disponible.
-try:
-    import winsound
-except ImportError:
-    winsound = None
-
+from audio import jouer_son
+from board_view import dessiner_plateau
 from database import initialiser_bdd, enregistrer_partie
 from enemy import ia_jouer
+from stats_view import ouvrir_statistiques
 from player import (
     creer_joueur,
     lister_joueurs,
-    obtenir_stats,
-    obtenir_classement,
-    obtenir_historique,
 )
 
 from settings import (
@@ -31,8 +22,6 @@ from settings import (
     COULEUR_FOND,
     COULEUR_PANNEAU,
     COULEUR_PLATEAU,
-    COULEUR_ALLUMETTE,
-    COULEUR_TETE_ALLUMETTE,
     COULEUR_TEXTE,
     COULEUR_TEXTE_SECONDAIRE,
     COULEUR_ACCENT,
@@ -50,39 +39,6 @@ joueurs_partie = []        # [nom_joueur_humain, nom_adversaire]
 index_tour = 0             # 0 ou 1 : a qui le tour ?
 partie_active = False
 heure_debut = 0.0
-
-
-# --------------------------------------------------------------------------
-# Gestion du son
-# --------------------------------------------------------------------------
-
-# Dossier du projet (l'endroit ou se trouve main.py), pour retrouver les
-# fichiers sons quel que soit l'endroit d'ou on lance le programme.
-DOSSIER_PROJET = Path(__file__).resolve().parent
-
-SONS = {
-    "valide": DOSSIER_PROJET / "assets" / "sounds" / "valide.wav",
-    "erreur": DOSSIER_PROJET / "assets" / "sounds" / "erreur.wav",
-    "victoire": DOSSIER_PROJET / "assets" / "sounds" / "victoire.wav",
-}
-
-
-def jouer_son(nom):
-    """Joue un effet sonore (valide / erreur / victoire) en arriere-plan.
-
-    Ne fait rien si winsound n'est pas disponible (hors Windows) ou si
-    le fichier son est introuvable, pour ne jamais bloquer le jeu."""
-    if winsound is None:
-        return
-
-    chemin = SONS.get(nom)
-    if chemin is None or not chemin.exists():
-        return
-
-    try:
-        winsound.PlaySound(str(chemin), winsound.SND_FILENAME | winsound.SND_ASYNC)
-    except Exception:
-        pass
 
 
 # --------------------------------------------------------------------------
@@ -168,87 +124,6 @@ def action_creer_profil():
         messagebox.showerror("Profil joueur", "Impossible de creer le joueur (verifie la base de donnees).")
 
 
-# --------------------------------------------------------------------------
-# Affichage graphique du plateau (allumettes)
-# --------------------------------------------------------------------------
-
-def dessiner_allumette(x, y):
-    """Dessine une allumette realiste centree en (x, y) : une tige en bois
-    avec un reflet, et une tete rouge arrondie avec une petite ombre.
-    Inspiree du visuel du sujet (allumettes jaunes a tete rouge)."""
-
-    # ombre portee au sol, sous l'allumette
-    plateau.create_oval(
-        x - 8, y + 2, x + 8, y + 6,
-        fill="#0b3d1f", outline="",
-    )
-
-    # tige en bois (rectangle avec un bord plus fonce pour le relief)
-    plateau.create_rectangle(
-        x - 4, y - 42, x + 4, y,
-        fill=COULEUR_ALLUMETTE, outline="#b40909", width=1,
-    )
-
-    # reflet clair sur la tige, pour donner un effet de volume
-    plateau.create_line(
-        x - 2, y - 39, x - 2, y - 4,
-        fill="#fde68a", width=1,
-    )
-
-    # tete de l'allumette (rouge, arrondie)
-    plateau.create_oval(
-        x - 7, y - 51, x + 7, y - 38,
-        fill=COULEUR_TETE_ALLUMETTE, outline="#7f751d", width=1,
-    )
-
-    # petit reflet sur la tete pour la faire paraitre brillante
-    plateau.create_oval(
-        x - 4, y - 49, x - 1, y - 46,
-        fill="#fca5a5", outline="",
-    )
-
-
-def dessiner_plateau():
-    """Dessine les piles d'allumettes sur le Canvas."""
-    plateau.delete("all")
-    largeur = int(plateau["width"])
-    hauteur = int(plateau["height"])
-
-    if not piles:
-        plateau.create_text(
-            largeur // 2, hauteur // 2,
-            text="Clique sur 'Nouvelle partie' pour commencer",
-            fill=COULEUR_TEXTE, font=("Segoe UI", 13, "bold"),
-        )
-        return
-
-    nb_piles = len(piles)
-    espace_colonne = largeur // (nb_piles + 1)
-
-    for index in range(nb_piles):
-        x = espace_colonne * (index + 1)
-
-        # Numero de la pile, au-dessus
-        plateau.create_text(
-            x, 22, text="Pile " + str(index + 1),
-            fill=COULEUR_TEXTE, font=("Segoe UI", 11, "bold"),
-        )
-
-        # Allumettes empilees du bas vers le haut, avec un leger decalage
-        # horizontal en zig-zag pour un rendu plus naturel (comme un vrai tas)
-        y_base = hauteur - 40
-        for niveau in range(piles[index]):
-            decalage = (niveau % 3 - 1) * 6
-            y = y_base - niveau * 19
-            dessiner_allumette(x + decalage, y)
-
-        # Nombre d'objets restants, en bas de la colonne
-        plateau.create_text(
-            x, hauteur - 12, text=str(piles[index]),
-            fill=COULEUR_TEXTE, font=("Segoe UI", 12, "bold"),
-        )
-
-
 def maj_statut(message=None):
     """Met a jour la barre de statut en bas de l'ecran."""
     if message is not None:
@@ -307,7 +182,7 @@ def nouvelle_partie():
     partie_active = True
     heure_debut = time.time()
 
-    dessiner_plateau()
+    dessiner_plateau(plateau, piles)
     maj_statut()
 
 
@@ -336,7 +211,7 @@ def jouer_coup(index_pile, quantite):
 
     piles[index_pile] -= quantite
     jouer_son("valide")
-    dessiner_plateau()
+    dessiner_plateau(plateau, piles)
 
     # Condition de victoire : celui qui retire le dernier objet gagne
     if sum(piles) == 0:
@@ -406,102 +281,6 @@ def terminer_partie(gagnant):
     jouer_son("victoire")
     maj_statut("Partie terminee. Vainqueur : " + gagnant)
     messagebox.showinfo("Fin de partie", gagnant + " remporte la partie !")
-
-
-# --------------------------------------------------------------------------
-# Tableau de bord statistique (fenetre secondaire)
-# --------------------------------------------------------------------------
-
-def ouvrir_statistiques():
-    """Ouvre une fenetre avec les statistiques du joueur, le classement
-    general et l'historique des dernieres parties."""
-    nom = var_joueur_stats.get().strip()
-    if nom == "":
-        messagebox.showwarning("Statistiques", "Selectionne un joueur.")
-        return
-
-    stats = obtenir_stats(nom)
-    classement = obtenir_classement(10)
-    historique = obtenir_historique(nom, 12)
-
-    fenetre_stats = tk.Toplevel(fenetre)
-    fenetre_stats.title("Statistiques de " + nom)
-    fenetre_stats.configure(bg=COULEUR_FOND)
-    fenetre_stats.geometry("950x600")
-
-    tk.Label(
-        fenetre_stats, text="Statistiques de " + nom,
-        bg=COULEUR_FOND, fg=COULEUR_TEXTE, font=("Segoe UI", 16, "bold"),
-    ).pack(anchor="w", padx=16, pady=12)
-
-    total = stats.get("parties_jouees", 0) or 0
-    victoires = stats.get("victoires", 0) or 0
-    defaites = stats.get("defaites", 0) or 0
-    nuls = stats.get("nuls", 0) or 0
-    score = stats.get("score", 0) or 0
-    taux_victoire = round((victoires / total) * 100, 1) if total else 0
-
-    resume = (
-        "Parties jouees : " + str(total) +
-        "   |   Victoires : " + str(victoires) +
-        "   |   Defaites : " + str(defaites) +
-        "   |   Nuls : " + str(nuls) +
-        "   |   Taux de victoire : " + str(taux_victoire) + "%" +
-        "   |   Score : " + str(score)
-    )
-    tk.Label(
-        fenetre_stats, text=resume, bg=COULEUR_PANNEAU, fg=COULEUR_TEXTE,
-        font=("Segoe UI", 10, "bold"), padx=10, pady=10,
-    ).pack(fill="x", padx=16, pady=(0, 12))
-
-    zone = tk.Frame(fenetre_stats, bg=COULEUR_FOND)
-    zone.pack(fill="both", expand=True, padx=16, pady=(0, 16))
-    zone.columnconfigure(0, weight=1)
-    zone.columnconfigure(1, weight=1)
-
-    # --- Classement general ---
-    cadre_classement = tk.LabelFrame(zone, text="Classement", bg=COULEUR_FOND, fg=COULEUR_TEXTE)
-    cadre_classement.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
-
-    arbre_classement = ttk.Treeview(
-        cadre_classement,
-        columns=("nom", "score", "v", "d", "n", "p"),
-        show="headings", height=12,
-    )
-    entetes = [("nom", "Nom", 110), ("score", "Score", 60), ("v", "V", 50),
-               ("d", "D", 50), ("n", "N", 50), ("p", "Parties", 70)]
-    for cle, titre, largeur in entetes:
-        arbre_classement.heading(cle, text=titre)
-        arbre_classement.column(cle, width=largeur, anchor="center")
-    arbre_classement.pack(fill="both", expand=True, padx=8, pady=8)
-
-    for ligne in classement:
-        arbre_classement.insert("", "end", values=(
-            ligne["nom"], ligne["score"], ligne["victoires"],
-            ligne["defaites"], ligne["nuls"], ligne["parties_jouees"],
-        ))
-
-    # --- Historique des parties ---
-    cadre_historique = tk.LabelFrame(zone, text="Historique", bg=COULEUR_FOND, fg=COULEUR_TEXTE)
-    cadre_historique.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
-
-    arbre_historique = ttk.Treeview(
-        cadre_historique,
-        columns=("date", "mode", "diff", "gagnant", "duree"),
-        show="headings", height=12,
-    )
-    entetes_hist = [("date", "Date", 140), ("mode", "Mode", 60), ("diff", "Niveau", 60),
-                     ("gagnant", "Gagnant", 100), ("duree", "Duree", 70)]
-    for cle, titre, largeur in entetes_hist:
-        arbre_historique.heading(cle, text=titre)
-        arbre_historique.column(cle, width=largeur, anchor="center")
-    arbre_historique.pack(fill="both", expand=True, padx=8, pady=8)
-
-    for ligne in historique:
-        arbre_historique.insert("", "end", values=(
-            ligne["date_heure"], ligne["mode"], ligne["difficulte"],
-            ligne["gagnant"], str(ligne["duree_secondes"]) + "s",
-        ))
 
 
 # --------------------------------------------------------------------------
@@ -628,7 +407,7 @@ def construire_interface():
     tk.Label(conteneur, textvariable=var_statut, bg=COULEUR_FOND, fg=COULEUR_TEXTE_SECONDAIRE,
               font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=18, pady=(8, 16))
 
-    dessiner_plateau()
+    dessiner_plateau(plateau, piles)
 
 
 

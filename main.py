@@ -62,8 +62,14 @@ def actualiser_controles_mode(*_):
 
     if mode_jcj():
         combo_difficulte.configure(state="disabled")
+        if "entry_adversaire" in globals():
+            entry_adversaire.configure(state="normal")
     else:
         combo_difficulte.configure(state="readonly")
+        if "entry_adversaire" in globals():
+            entry_adversaire.configure(state="disabled")
+            if var_adversaire.get().strip() == "" or var_adversaire.get().strip() == "Joueur 2":
+                var_adversaire.set("IA")
 
 
 def joueur_courant():
@@ -124,6 +130,16 @@ def action_creer_profil():
         messagebox.showerror("Profil joueur", "Impossible de creer le joueur (verifie la base de donnees).")
 
 
+def action_ouvrir_tableau_de_bord():
+    """Ouvre le tableau de bord pour le joueur selectionne."""
+    nom = var_joueur_stats.get().strip()
+    if nom == "":
+        messagebox.showwarning("Statistiques", "Selectionne un joueur.")
+        return
+
+    ouvrir_statistiques(fenetre, nom)
+
+
 def maj_statut(message=None):
     """Met a jour la barre de statut en bas de l'ecran."""
     if message is not None:
@@ -160,7 +176,10 @@ def nouvelle_partie():
         return
 
     nom_joueur = var_joueur.get().strip() or "Joueur 1"
-    nom_adversaire = var_adversaire.get().strip() or ("IA" if mode_ia() else "Joueur 2")
+    if mode_ia():
+        nom_adversaire = "IA"
+    else:
+        nom_adversaire = var_adversaire.get().strip() or "Joueur 2"
 
     if not mode_ia() and nom_joueur == nom_adversaire:
         messagebox.showerror(
@@ -299,7 +318,7 @@ def appliquer_theme():
 def construire_interface():
     global plateau, var_statut, var_mode, var_difficulte, var_config
     global var_joueur, var_adversaire, var_joueur_stats, var_nouveau_joueur
-    global var_pile, var_quantite, combo_joueur, combo_stats, combo_difficulte
+    global var_pile, var_quantite, combo_joueur, combo_stats, combo_difficulte, entry_adversaire
 
     appliquer_theme()
 
@@ -352,13 +371,14 @@ def construire_interface():
     combo_joueur.pack(fill="x", padx=8, pady=(2, 8))
 
     tk.Label(cadre_joueurs, text="Adversaire (si JcJ)", bg=COULEUR_PANNEAU, fg=COULEUR_TEXTE_SECONDAIRE).pack(anchor="w", padx=8)
-    tk.Entry(cadre_joueurs, textvariable=var_adversaire).pack(fill="x", padx=8, pady=(2, 8))
+    entry_adversaire = tk.Entry(cadre_joueurs, textvariable=var_adversaire)
+    entry_adversaire.pack(fill="x", padx=8, pady=(2, 8))
 
     tk.Label(cadre_joueurs, text="Voir les stats de", bg=COULEUR_PANNEAU, fg=COULEUR_TEXTE_SECONDAIRE).pack(anchor="w", padx=8)
     combo_stats = ttk.Combobox(cadre_joueurs, textvariable=var_joueur_stats, state="readonly")
     combo_stats.pack(fill="x", padx=8, pady=(2, 8))
 
-    tk.Button(cadre_joueurs, text="Tableau de bord", command=ouvrir_statistiques,
+    tk.Button(cadre_joueurs, text="Tableau de bord", command=action_ouvrir_tableau_de_bord,
               bg=COULEUR_ACCENT, relief="flat").pack(fill="x", padx=8, pady=(4, 8))
 
     # ----- Section "Partie" -----
@@ -407,6 +427,7 @@ def construire_interface():
     tk.Label(conteneur, textvariable=var_statut, bg=COULEUR_FOND, fg=COULEUR_TEXTE_SECONDAIRE,
               font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=18, pady=(8, 16))
 
+    actualiser_controles_mode()
     dessiner_plateau(plateau, piles)
 
 

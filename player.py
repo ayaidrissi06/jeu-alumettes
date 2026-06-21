@@ -2,6 +2,8 @@
 # Gere les profils joueurs : creation, liste, statistiques individuelles,
 # classement general et historique des parties.
 
+from sqlite3 import Cursor
+
 from mysql.connector import Error
 
 from database import connecter
@@ -28,15 +30,15 @@ def creer_joueur(nom):
         return False
 
     try:
-        curseur = connexion.cursor()
-        curseur.execute("INSERT IGNORE INTO joueurs (nom) VALUES (%s)", (nom,))
+        cursor = connexion.cursor() # crée un "curseur" : c'est l'objet qui permet d'envoyer des requêtes SQL et de récupérer leurs résultats.
+        cursor.execute("INSERT IGNORE INTO joueurs (nom) VALUES (%s)", (nom,))
         connexion.commit()
         return True
     except Error as erreur:
         print("Erreur lors de la creation du joueur :", erreur)
         return False
     finally:
-        curseur.close()
+        cursor.close()
         connexion.close()
 
 
@@ -47,15 +49,15 @@ def lister_joueurs():
         return []
 
     try:
-        curseur = connexion.cursor()
-        curseur.execute("SELECT nom FROM joueurs ORDER BY nom ASC")
-        lignes = curseur.fetchall()
+        cursor = connexion.cursor()
+        cursor.execute("SELECT nom FROM joueurs ORDER BY nom ASC")
+        lignes = cursor.fetchall()
         return [ligne[0] for ligne in lignes]
     except Error as erreur:
         print("Erreur lors de la lecture des joueurs :", erreur)
         return []
     finally:
-        curseur.close()
+        cursor.close()
         connexion.close()
 
 
@@ -66,9 +68,9 @@ def obtenir_stats(nom):
         return dict(STATS_PAR_DEFAUT, nom=nom)
 
     try:
-        curseur = connexion.cursor(dictionary=True)
-        curseur.execute("SELECT * FROM joueurs WHERE nom = %s", (nom,))
-        resultat = curseur.fetchone()
+        cursor = connexion.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM joueurs WHERE nom = %s", (nom,))
+        resultat = cursor.fetchone()
         if resultat:
             return resultat
         return dict(STATS_PAR_DEFAUT, nom=nom)
@@ -76,7 +78,7 @@ def obtenir_stats(nom):
         print("Erreur lors de la lecture des statistiques :", erreur)
         return dict(STATS_PAR_DEFAUT, nom=nom)
     finally:
-        curseur.close()
+        cursor.close()
         connexion.close()
 
 
@@ -87,19 +89,19 @@ def obtenir_classement(limite=10):
         return []
 
     try:
-        curseur = connexion.cursor(dictionary=True)
-        curseur.execute("""
+        cursor = connexion.cursor(dictionary=True)
+        cursor.execute("""
             SELECT nom, score, victoires, defaites, nuls, parties_jouees
             FROM joueurs
             ORDER BY score DESC, victoires DESC
             LIMIT %s
         """, (limite,))
-        return curseur.fetchall()
+        return cursor.fetchall()
     except Error as erreur:
         print("Erreur lors de la lecture du classement :", erreur)
         return []
     finally:
-        curseur.close()
+        cursor.close()
         connexion.close()
 
 
@@ -110,18 +112,18 @@ def obtenir_historique(nom, limite=15):
         return []
 
     try:
-        curseur = connexion.cursor(dictionary=True)
-        curseur.execute("""
+        cursor = connexion.cursor(dictionary=True)
+        cursor.execute("""
             SELECT date_heure, mode, difficulte, gagnant, perdant, duree_secondes
             FROM parties
             WHERE joueur = %s OR adversaire = %s
             ORDER BY date_heure DESC
             LIMIT %s
         """, (nom, nom, limite))
-        return curseur.fetchall()
+        return cursor.fetchall()
     except Error as erreur:
         print("Erreur lors de la lecture de l'historique :", erreur)
         return []
     finally:
-        curseur.close()
+        cursor.close()
         connexion.close()

@@ -95,11 +95,11 @@ def lire_configuration_piles():
             continue
         valeur = int(morceau)   # leve ValueError si ce n'est pas un nombre
         if valeur <= 0:
-            raise ValueError("Les piles doivent contenir au moins un objet.")
+            raise ValueError("Les allumettes doivent contenir au moins un objet.")
         valeurs.append(valeur)
 
     if len(valeurs) == 0:
-        raise ValueError("Il faut au moins une pile.")
+        raise ValueError("Il faut au moins une allumette.")
     return valeurs
 
 
@@ -153,7 +153,7 @@ def maj_statut(message=None):
     var_statut.set(
         "Mode " + var_mode.get() +
         "  |  Tour de " + joueur_courant() +
-        "  |  Objets restants : " + str(sum(piles))
+        "  |  Allumettes restantes : " + str(sum(piles))
     )
 
 
@@ -170,7 +170,7 @@ def nouvelle_partie():
     except ValueError:
         messagebox.showerror(
             "Configuration invalide",
-            "La configuration des piles doit etre une suite de nombres "
+            "La configuration des allumettes doit etre une suite de nombres "
             "entiers positifs separes par des virgules (ex : 3,5,7).",
         )
         return
@@ -215,7 +215,7 @@ def jouer_coup(index_pile, quantite):
 
     if index_pile < 0 or index_pile >= len(piles):
         jouer_son("erreur")
-        messagebox.showerror("Coup invalide", "Ce numero de pile n'existe pas.")
+        messagebox.showerror("Coup invalide", "Ce numero d'allumette n'existe pas.")
         return
 
     if quantite < 1:
@@ -225,7 +225,7 @@ def jouer_coup(index_pile, quantite):
 
     if quantite > piles[index_pile]:
         jouer_son("erreur")
-        messagebox.showerror("Coup invalide", "Cette pile ne contient pas assez d'objets.")
+        messagebox.showerror("Coup invalide", "Cette allumette ne contient pas assez d'objets.")
         return
 
     piles[index_pile] -= quantite
@@ -262,7 +262,7 @@ def action_jouer_humain():
         quantite = int(var_quantite.get())
     except ValueError:
         jouer_son("erreur")
-        messagebox.showerror("Coup invalide", "Indique un numero de pile et une quantite valides.")
+        messagebox.showerror("Coup invalide", "Indique un numero d'allumette et une quantite valides.")
         return
 
     jouer_coup(index_pile, quantite)
@@ -402,7 +402,7 @@ def construire_interface():
     var_mode.trace_add("write", actualiser_controles_mode)
     actualiser_controles_mode()
 
-    tk.Label(cadre_partie, text="Piles (separees par des virgules)", bg=COULEUR_PANNEAU, fg=COULEUR_TEXTE_SECONDAIRE).pack(anchor="w", padx=8)
+    tk.Label(cadre_partie, text="Allumettes (separees par des virgules)", bg=COULEUR_PANNEAU, fg=COULEUR_TEXTE_SECONDAIRE).pack(anchor="w", padx=8)
     tk.Entry(cadre_partie, textvariable=var_config).pack(fill="x", padx=8, pady=(2, 8))
 
     tk.Button(cadre_partie, text="Nouvelle partie", command=nouvelle_partie,
@@ -414,7 +414,7 @@ def construire_interface():
     controles = tk.Frame(panneau_droit, bg=COULEUR_PANNEAU)
     controles.pack(fill="x")
 
-    tk.Label(controles, text="Pile", bg=COULEUR_PANNEAU, fg=COULEUR_TEXTE_SECONDAIRE).grid(row=0, column=0, padx=4)
+    tk.Label(controles, text="Allumette", bg=COULEUR_PANNEAU, fg=COULEUR_TEXTE_SECONDAIRE).grid(row=0, column=0, padx=4)
     tk.Entry(controles, textvariable=var_pile, width=6).grid(row=1, column=0, padx=4)
 
     tk.Label(controles, text="Quantite", bg=COULEUR_PANNEAU, fg=COULEUR_TEXTE_SECONDAIRE).grid(row=0, column=1, padx=4)

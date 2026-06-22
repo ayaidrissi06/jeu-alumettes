@@ -5,7 +5,7 @@
 
 import os
 
-# Configuration de depart des piles (jeu de Nim classique : 3, 5, 7 objets)
+# Configuration de depart des allumettes (jeu de Nim classique : 3, 5, 7 objets)
 PILES_PAR_DEFAUT = [3, 5, 7]
 
 # Niveaux de difficulte proposes pour l'IA

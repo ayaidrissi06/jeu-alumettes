@@ -53,7 +53,7 @@ def dessiner_plateau(canvas, piles):
         x = espace_colonne * (index + 1)
 
         canvas.create_text(
-            x, 22, text="Pile " + str(index + 1),
+            x, 22, text="Allumette " + str(index + 1),
             fill=COULEUR_TEXTE, font=("Segoe UI", 11, "bold"),
         )
 

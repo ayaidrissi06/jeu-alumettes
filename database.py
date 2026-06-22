@@ -15,7 +15,12 @@ def connecter():
     Renvoie l'objet connexion en cas de succes, ou None en cas d'echec.
     """
     try:
-        return mysql.connector.connect(**DB_CONFIG)
+        return mysql.connector.connect(
+            host=DB_CONFIG["host"],
+            user=DB_CONFIG["user"],
+            password=DB_CONFIG["password"],
+            database=DB_CONFIG["database"],
+        )
     except Error as erreur:
         print("Erreur de connexion a la base de donnees :", erreur)
         return None
@@ -28,9 +33,9 @@ def initialiser_bdd():
         return False
 
     try:
-        curseur = connexion.cursor()
+        cursor = connexion.cursor()
 
-        curseur.execute("""
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS joueurs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 nom VARCHAR(100) NOT NULL UNIQUE,
@@ -42,7 +47,7 @@ def initialiser_bdd():
             )
         """)
 
-        curseur.execute("""
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS parties (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 joueur VARCHAR(100) NOT NULL,
@@ -66,13 +71,13 @@ def initialiser_bdd():
         return False
 
     finally:
-        curseur.close()
+        cursor.close()
         connexion.close()
 
 
-def ajouter_joueur_si_absent(curseur, nom):
+def ajouter_joueur_si_absent(cursor, nom):
     """Insere un joueur dans la table s'il n'y est pas deja."""
-    curseur.execute(
+    cursor.execute(
         "INSERT IGNORE INTO joueurs (nom) VALUES (%s)",
         (nom,)
     )
@@ -87,12 +92,12 @@ def enregistrer_partie(joueur, adversaire, duree, mode, difficulte,
         return False
 
     try:
-        curseur = connexion.cursor()
+        cursor = connexion.cursor()
 
-        ajouter_joueur_si_absent(curseur, joueur)
-        ajouter_joueur_si_absent(curseur, adversaire)
+        ajouter_joueur_si_absent(cursor, joueur)
+        ajouter_joueur_si_absent(cursor, adversaire)
 
-        curseur.execute("""
+        cursor.execute("""
             INSERT INTO parties
                 (joueur, adversaire, duree_secondes, mode, difficulte,
                  piles_depart, piles_fin, gagnant, perdant)
@@ -105,7 +110,7 @@ def enregistrer_partie(joueur, adversaire, duree, mode, difficulte,
         if match_nul:
             # Cas rare en JcJ : aucune victoire/defaite, juste 1 point chacun
             for nom in (joueur, adversaire):
-                curseur.execute("""
+                cursor.execute("""
                     UPDATE joueurs
                     SET parties_jouees = parties_jouees + 1,
                         nuls = nuls + 1,
@@ -113,7 +118,7 @@ def enregistrer_partie(joueur, adversaire, duree, mode, difficulte,
                     WHERE nom = %s
                 """, (nom,))
         else:
-            curseur.execute("""
+            cursor.execute("""
                 UPDATE joueurs
                 SET parties_jouees = parties_jouees + 1,
                     victoires = victoires + 1,
@@ -121,7 +126,7 @@ def enregistrer_partie(joueur, adversaire, duree, mode, difficulte,
                 WHERE nom = %s
             """, (gagnant,))
 
-            curseur.execute("""
+            cursor  .execute("""
                 UPDATE joueurs
                 SET parties_jouees = parties_jouees + 1,
                     defaites = defaites + 1
@@ -136,5 +141,5 @@ def enregistrer_partie(joueur, adversaire, duree, mode, difficulte,
         return False
 
     finally:
-        curseur.close()
+        cursor.close()
         connexion.close()

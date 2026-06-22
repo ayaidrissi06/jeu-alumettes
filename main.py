@@ -79,8 +79,8 @@ def joueur_courant():
     return joueurs_partie[index_tour % 2]
 
 
-def lire_configuration_piles():
-    """Lit le champ de configuration des piles et renvoie une liste d'entiers.
+def lire_configuration_allumettes():
+    """Lit le champ de configuration des allumettes et renvoie une liste d'entiers.
 
     Leve une ValueError si le texte saisi n'est pas valide.
     """
@@ -166,12 +166,12 @@ def nouvelle_partie():
     global piles, piles_depart, joueurs_partie, index_tour, partie_active, heure_debut
 
     try:
-        configuration = lire_configuration_piles()
+        configuration = lire_configuration_allumettes()
     except ValueError:
         messagebox.showerror(
             "Configuration invalide",
             "La configuration des allumettes doit etre une suite de nombres "
-            "entiers positifs separes par des virgules (ex : 3,5,7).",
+            
         )
         return
 

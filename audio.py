@@ -12,9 +12,9 @@ except ImportError:
 DOSSIER_PROJET = Path(__file__).resolve().parent
 
 SONS = {
-    "valide": DOSSIER_PROJET / "assets" / "sounds" / "valide.wav",
-    "erreur": DOSSIER_PROJET / "assets" / "sounds" / "erreur.wav",
-    "victoire": DOSSIER_PROJET / "assets" / "sounds" / "victoire.wav",
+    "valide": Path("C:/Users/aya18/Desktop/projet python/assets/sounds/valide.wav"),
+    "erreur": Path("C:/Users/aya18/Desktop/projet python/assets/sounds/erreur.wav"),
+    "victoire": Path("C:/Users/aya18/Desktop/projet python/assets/sounds/victoire.wav"),
 }
 
 
